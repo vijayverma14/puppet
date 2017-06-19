@@ -1,0 +1,128 @@
+class elasticsearch {
+
+        group { 'elasticsearch':
+                ensure => 'present',
+        }
+
+        user { 'elasticsearch':
+               ensure => 'present',
+               gid => 'elasticsearch',
+               require => Group['elasticsearch'],
+               shell => '/bin/false',
+               home => '/home/elasticsearch',
+        }
+
+        # create pid directory
+		file { '/var/run/elasticsearch':
+		ensure => 'directory',
+	       owner  => 'elasticsearch',
+	       group  => 'elasticsearch',
+	       mode   => '0750',
+           require => [Group['elasticsearch'], User['elasticsearch']],
+	}
+
+        # untar jre
+        exec {'java_untar':
+			  cwd =>    
+              command => '/bin/tar -zxf jre-8u121-linux-x64.tar.gz -C /opt/',
+        }
+
+        # create jre symlink
+        file { '/opt/jre':
+               ensure => 'link',
+               target => '/opt/jre1.8.0_121',
+               require => Exec['java_untar']
+        }
+
+        # set owner within elasticsearch directory to elasticsearch.elasticsearch
+        exec { 'jre_chown':
+               command => '/usr/bin/find /opt/jre/ -print0 | xargs -0 chown root.root',
+               require => File['/opt/jre'],
+        }
+
+        # create directory for elasticsearch
+        file { ['/srv/db2', '/srv/db2/data1']:
+               ensure => 'directory',
+               owner => 'root',
+               group => 'root',
+               mode => '0755',
+               before => Exec['elastic_untar'],
+        }
+
+        # untar elasticsearch
+        exec {'elastic_untar':
+              cwd => '/root/deploy/puppet-modules/elasticsearch/files',
+              command => '/bin/tar -zxf  elasticsearch-2.4.4.tar.gz -C /srv/db2/data1',
+        }
+
+        # create elasticsearch symlink
+        file { '/srv/db2/data1/elasticsearch':
+               ensure => 'link',
+               target => '/srv/db2/data1/elasticsearch-2.4.4',
+               require => Exec['elastic_untar'],
+        }
+
+        # copy upload files
+        file { '/srv/db2/data1/elasticsearch/upload' :
+               ensure => 'directory',
+               recurse => true,
+               source => '/root/deploy/puppet-modules/elasticsearch/files/upload',
+               require => File['/srv/db2/data1/elasticsearch'],
+        }
+
+        # copy config files
+        file { '/srv/db2/data1/elasticsearch/config' :
+               ensure => 'directory',
+               recurse => true,
+               source => '/root/deploy/puppet-modules/elasticsearch/files/config',
+               require => File['/srv/db2/data1/elasticsearch'],
+        }
+
+
+        # set owner within elasticsearch directory to elasticsearch.elasticsearch
+        exec { 'elastic_chown':
+               command => '/usr/bin/find /srv/db2/data1/elasticsearch/ -print0 | xargs -0 chown elasticsearch.elasticsearch',
+               require => [File['/srv/db2/data1/elasticsearch/config'], File['/srv/db2/data1/elasticsearch/upload']],
+        }
+
+        # copy start script
+        file { '/etc/init.d/elasticsearch':
+               ensure => present,
+               owner => 'elasticsearch',
+               group => 'elasticsearch',
+               mode => 0755,
+               source => '/root/deploy/puppet-modules/elasticsearch/files/elasticsearch_startup',
+        }
+
+        # start elasticsearch
+        exec { 'elasticsearch-start':
+               user => 'elasticsearch',
+               command => '/etc/init.d/elasticsearch start',
+               require => [File['/etc/init.d/elasticsearch'], File['/var/run/elasticsearch'], Exec['elastic_chown'], Exec['jre_chown']],
+        }
+
+        # create elasticsearch bootup symlinks
+        file { '/etc/init.d/rc3.d/K01elasticsearch':
+               ensure => 'link',
+               target => '../elasticsearch',
+               require => File['/etc/init.d/elasticsearch'],
+        }
+
+        file { '/etc/init.d/rc3.d/S12elasticsearch':
+               ensure => 'link',
+               target => '../elasticsearch',
+               require => File['/etc/init.d/elasticsearch'],
+        }
+
+        file { '/etc/init.d/rc5.d/K01elasticsearch':
+               ensure => 'link',
+               target => '../elasticsearch',
+               require => File['/etc/init.d/elasticsearch'],
+        }
+
+        file { '/etc/init.d/rc5.d/S12elasticsearch':
+               ensure => 'link',
+               target => '../elasticsearch',
+               require => File['/etc/init.d/elasticsearch'],
+        }
+}
