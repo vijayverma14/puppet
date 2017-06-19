@@ -34,24 +34,8 @@ Now install `puppetserver` on Master node
 
 `yum clean all`   
 `yum update -y`   
-`yum install puppetserver -y`   
-`service puppetserver restart`    
-`service puppetserver status`    
+`yum install puppetserver -y`     
 
-
-Edit `/etc/hosts` file and enter the hostname and IP address of your master    
-Also enter the hostname and IP address of all agent machines if you are not using seperate DNS server
-
-`xxx.xxx.xxx.xxx        puppet-master       puppet-master.example.com`    
-
-Edit `/etc/puppet/puppet.conf` file and enter below lines in `[main]` section:    
-
-`dns_alt_names = puppet-master puppet-master.example.com`    
-
-
-Generate the certificate and act as CA (Certification Authority)    
-
-`puppet master --verbose --no-daemonize`    
 
 ### Puppet Agent Installation
 
@@ -81,12 +65,66 @@ Now install `puppet` on all Agent nodes
 `service puppet status`    
 
 
+## Step 2  - Edit the host and Puppet Configuration files in both Puppet Master & Agent
+
+
+### Puppet Agent Configuration
+
 Edit `/etc/hosts` file and enter the hostname and IP address of your agent & master    
 
 `xxx.xxx.xxx.xxx        puppet-agent       puppet-agent.example.com`    
 
 
+Edit `/etc/puppet/puppet.conf` file and enter below lines in `[agent]` section:    
 
-### Install Puppet Master and Agent
-### Edit the host and Puppet Configuration files in both Puppet Master & Agent
-### Establish secure connection between Master and Agent
+`server = puppet-master puppet-master.example.com`    
+
+
+To check SSL certificate location    
+
+`puppet agent --configprint ssldir`    
+
+
+To check SSL certification available    
+
+`puppet cert list -a`    
+
+Restart puppet service    
+
+`service puppet restart`     
+`puppet resource service puppet ensure=running`
+
+Check for the fingerprint of Certificate being generated     
+
+`puppet agent --fingerprint`     
+
+
+### Puppet Master Configuration
+
+Edit `/etc/hosts` file and enter the hostname and IP address of your master    
+Also enter the hostname and IP address of all agent machines if you are not using seperate DNS server
+
+`xxx.xxx.xxx.xxx        puppet-master       puppet-master.example.com`    
+
+
+Edit `/etc/puppet/puppet.conf` file and enter below lines in `[main]` section:    
+
+`dns_alt_names = puppet-master puppet-master.example.com`    
+
+
+Generate the certificate and act as CA (Certification Authority)    
+
+`puppet master --verbose --no-daemonize`     
+
+
+Start the puppet server   
+
+`puppet resource service puppetserver ensure=running`  
+
+Check the available certificate requests to sing    
+
+`puppet cert list -a`    
+
+Sign the certificate from agent which is not showing with + sign    
+
+`puppet cert sign <FQDN of Agent>`     
