@@ -1,0 +1,67 @@
+To install apache tomcat version 9 on agent from master using puppet
+
+## 1. install java8 and newer version
+
+install java module before doing it
+
+[root@puppet-master ~]# puppet module install puppetlabs-java
+
+[root@puppet-master ~]# puppet module install puppetlabs-java
+Notice: Preparing to install into /etc/puppet/modules ...
+Notice: Downloading from https://forgeapi.puppetlabs.com ...
+Notice: Installing -- do not interrupt ...
+/etc/puppet/modules
++-- puppetlabs-java (v2.0.0)
+  +-- puppet-archive (v1.3.0)
+  +-- puppetlabs-stdlib (v4.17.0)
+[root@puppet-master ~]# 
+
+
+
+
+## 2. Install java module which needs to be installed on client machine
+
+[root@puppet-master manifests]# vi /etc/puppet/manifests/site.pp 
+
+
+
+[root@puppet-master manifests]# cat /etc/puppet/manifests/site.pp 
+class { 'java' :
+  package => 'java-1.8.0-openjdk-devel',
+}
+[root@puppet-master manifests]#
+
+
+## 3. Install tomcat module which needs to be installed on client machine
+
+[root@puppet-master manifests]# puppet module install puppetlabs-tomcat
+Notice: Preparing to install into /etc/puppet/modules ...
+Notice: Downloading from https://forgeapi.puppetlabs.com ...
+Notice: Installing -- do not interrupt ...
+/etc/puppet/modules
++-- puppetlabs-tomcat (v1.7.0)
+  +-- puppet-staging (v2.2.0)
+  +-- puppetlabs-concat (v2.2.1)
+  +-- puppetlabs-stdlib (v4.17.0)
+[root@puppet-master manifests]# 
+
+
+
+[root@puppet-master manifests]# vi site.pp 
+[root@puppet-master manifests]# cat site.pp 
+class { 'java' :
+ package => 'java-1.8.0-openjdk-devel',
+}
+tomcat:in:install { '/opt/tomcat':
+ source_url => 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.78/src/apache-tomcat-7.0.78-src.tar.gz',
+}
+tomcat::instance { 'default':
+        catalina_home => '/opt/tomcat',
+}
+[root@puppet-master manifests]#
+
+
+## 4. go to puppet agent and run 
+
+[root@puppet-client1 ssl]# puppet agent -t
+
